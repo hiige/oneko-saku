@@ -64,6 +64,7 @@ AnimalDefaultsData AnimalDefaultsDataTable[] =
 char    *Foreground = NULL;             /*   foreground */
 char    *Background = NULL;             /*   background */
 long    IntervalTime = 0L;              /*   time       */
+long    NekoSleepTime = 0L;             /*NekoSleep Time*/
 double  NekoSpeed = (double)0;          /*   speed      */
 int     IdleSpace = 0;                  /*   idle       */
 int     NekoMoyou = NOTDEFINED;         /*   tora       */
@@ -1143,6 +1144,9 @@ NekoThinkDraw()
         SetNekoState(NEKO_SLEEP);
         break;
     case NEKO_SLEEP:
+        if (NekoStateCount < NekoSleepTime) {
+            break;
+        }
         if (IsNekoMoveStart()) {
             SetNekoState(NEKO_AWAKE);
             break;
@@ -1349,6 +1353,7 @@ char    *message[] = {
 "-fg <color>            : Foreground color",
 "-bg <color>            : Background color",
 "-speed <dots>",
+"-sleeptime <tick time>",
 "-time <microseconds>",
 "-idle <dots>",
 "-name <name>           : set window name of neko.",
@@ -1412,6 +1417,15 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         NekoSpeed = atof(argv[ArgCounter]);
       } else {
         fprintf(stderr, "%s: -speed option error.\n", ProgramName);
+        exit(1);
+      }
+    }
+    else if (strcmp(argv[ArgCounter], "-sleeptime") == 0) {
+      ArgCounter++;
+      if (ArgCounter < argc) {
+        NekoSleepTime = atoi(argv[ArgCounter]);
+      } else {
+        fprintf(stderr, "%s: -sleeptime option error.\n", ProgramName);
         exit(1);
       }
     }
