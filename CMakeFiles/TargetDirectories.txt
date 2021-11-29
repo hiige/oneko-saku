@@ -1,3 +1,0 @@
-/home/notgaystop/Documents/C-Programs/oneko/CMakeFiles/rebuild_cache.dir
-/home/notgaystop/Documents/C-Programs/oneko/CMakeFiles/edit_cache.dir
-/home/notgaystop/Documents/C-Programs/oneko/CMakeFiles/oneko.dir

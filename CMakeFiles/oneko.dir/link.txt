@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/oneko.dir/oneko.c.o -o oneko  -lX11 -lm -lXext 
