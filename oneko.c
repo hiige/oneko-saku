@@ -1451,13 +1451,15 @@ Usage()
   int loop;
 
   mptr = message;
-  fprintf(stderr, "Usage: %s [<options>]\n", ProgramName);
+  fprintf(stderr, "Usage: %s [<global options>]"
+                  "-pet [<pet options>] ...\n", ProgramName);
   while (*mptr) {
     fprintf(stderr,"%s\n", *mptr);
     mptr++;
   }
+  fputs("\nPets are:\n", stderr);
   for (loop=0;loop<BITMAPTYPES;loop++)
-    fprintf(stderr,"-%s Use %s bitmaps\n",AnimalDefaultsDataTable[loop].name,AnimalDefaultsDataTable[loop].name);
+    fprintf(stderr,"%s Uses %s bitmaps\n",AnimalDefaultsDataTable[loop].name,AnimalDefaultsDataTable[loop].name);
 }
 
 
@@ -1468,6 +1470,7 @@ Usage()
 void
 GetArguments(int argc, char *argv[], char *theDisplayName)
 {
+  char *av=0;
   int           ArgCounter;
   extern int XOffset,YOffset;
   int loop,found=0;
@@ -1480,7 +1483,38 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
       Usage();
       exit(0);
     }
-    if (strcmp(argv[ArgCounter], "-display") == 0) {
+    if (strcmp(argv[ArgCounter], "-pet") == 0) do {
+      ArgCounter++;
+      if (ArgCounter >= argc) {
+        fprintf(stderr, "%s: -pet option error.\n", ProgramName);
+        exit(1);
+      }
+      av = argv[ArgCounter];
+      if (strcmp(av, "bsd") == 0)
+        av = "bsd_daemon";
+      for (loop=0;loop<BITMAPTYPES;loop++) {
+        if (strcmp(av,AnimalDefaultsDataTable[loop].name)==0)
+          {NekoMoyou = loop;found=1;}
+      }
+      if (!found) {
+        fprintf(stderr,
+                "%s: Unknown pet \"%s\".\n", ProgramName,
+                argv[ArgCounter]);
+        exit(1);
+      }
+      for (loop=ArgCounter; ++loop < argc;)
+        if(!strcmp(argv[loop], "-pet")) break;
+      if(loop != argc)
+        if(fork()) {
+          GetArguments(loop  - ArgCounter - 1,
+                       argv + ArgCounter + 1,
+                       theDisplayName);
+          return;
+        }
+        else ArgCounter=loop;
+      else break;
+    } while(1);
+    else if (strcmp(argv[ArgCounter], "-display") == 0) {
       ArgCounter++;
       if (ArgCounter < argc) {
         strcpy(theDisplayName, argv[ArgCounter]);
@@ -1596,20 +1630,11 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
       fprintf(stderr,"Patchlevel :%s\n",PATCHLEVEL);
     }
     else {
-      char *av = argv[ArgCounter] + 1;
-      if (strcmp(av, "bsd") == 0)
-        av = "bsd_daemon";
-      for (loop=0;loop<BITMAPTYPES;loop++) {
-        if (strcmp(av,AnimalDefaultsDataTable[loop].name)==0)
-          {NekoMoyou = loop;found=1;}
-      }
-      if (!found) {
-        fprintf(stderr,
-                "%s: Unknown option \"%s\".\n", ProgramName,
-                argv[ArgCounter]);
-        Usage();
-        exit(1);
-      }
+      fprintf(stderr,
+              "%s: Unknown option \"%s\".\n", ProgramName,
+              argv[ArgCounter]);
+      Usage();
+      exit(1);
     }
   }
 
