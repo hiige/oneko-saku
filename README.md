@@ -12,13 +12,11 @@ Neko runs over the windows
 
 ### Building
 
-Build system is not used because there is only one source file that includes all headers. The command below produces `oneko` executable on the majority of distributions.
+The CMake Build system is unused because there is only one source file that includes all headers. You can install the program using make, or produce the `oneko` executable using the command below.
 
 ```sh
-clang -Wno-parentheses -std=c11 -pedantic -D_DEFAULT_SOURCE oneko.c -o oneko -lc -lm -lX11 -lXext
+cc -Wno-parentheses -std=c11 -pedantic -D_DEFAULT_SOURCE oneko.c -o oneko -lc -lm -lX11 -lXext
 ```
-
-The same arguments will work with GCC compiler.
 
 ### Usage
 
