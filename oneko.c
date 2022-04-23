@@ -363,7 +363,7 @@ InitBitmapAndGCs()
                 theForegroundColor.pixel,
                 theBackgroundColor.pixel,
                 DefaultDepth(theDisplay, theScreen));
-        if(Scale == 1) free(bm);
+        if(Scale != 1) free(bm);
 
         theGCValues.tile = *(BitmapGCDataTablePtr->BitmapCreatePtr);
 
@@ -373,7 +373,7 @@ InitBitmapAndGCs()
         *(BitmapGCDataTablePtr->BitmapMasksPtr)
             = XCreateBitmapFromData(theDisplay, theRoot,
                 bm, BitmapWidth, BitmapHeight);
-        if(Scale == 1) free(bm);
+        if(Scale != 1) free(bm);
 
         *(BitmapGCDataTablePtr->GCCreatePtr)
             = XCreateGC(theDisplay, theWindow,
