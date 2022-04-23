@@ -73,6 +73,7 @@ double  NekoSpeed = (double)0;          /*   speed      */
 int     IdleSpace = 0;                  /*   idle       */
 int     NekoMoyou = NOTDEFINED;         /*   tora       */
 int     NoShape = NOTDEFINED;           /*   noshape    */
+int     NoCursor = False;
 int     ReverseVideo = NOTDEFINED;      /*   reverse    */
 int     ToWindow = NOTDEFINED;          /*   towindow   */
 int     ToFocus = NOTDEFINED;           /*   tofocus    */
@@ -510,6 +511,8 @@ MakeMouseCursor()
     Pixmap                      theCursorSource;
     Pixmap                      theCursorMask;
 
+   if(NoCursor) return;
+
     theCursorSource
         = XCreateBitmapFromData(theDisplay, theRoot,
                                 AnimalDefaultsDataTable[NekoMoyou].cursor,
@@ -744,13 +747,13 @@ InitScreen(char *DisplayName)
   }
 
   theWindowAttributes.background_pixel = theBackgroundColor.pixel;
-  theWindowAttributes.cursor = theCursor;
+  if(!NoCursor) theWindowAttributes.cursor = theCursor;
   theWindowAttributes.override_redirect = True;
 
-  if (!ToWindow) XChangeWindowAttributes(theDisplay, theRoot, CWCursor,
+  if (!ToWindow) XChangeWindowAttributes(theDisplay, theRoot, (NoCursor?0:CWCursor),
                                          &theWindowAttributes);
 
-  theWindowMask = CWBackPixel | CWCursor | CWOverrideRedirect;
+  theWindowMask = CWBackPixel | (NoCursor?0:CWCursor) | CWOverrideRedirect;
 
   theWindow = XCreateWindow(theDisplay, theRoot, 0, 0,
                             BitmapWidth, BitmapHeight,
@@ -778,6 +781,8 @@ RestoreCursor()
 {
   XSetWindowAttributes  theWindowAttributes;
   BitmapGCData *BitmapGCDataTablePtr;
+
+  if(NoCursor) return;
 
   theWindowAttributes.cursor = None;
   XChangeWindowAttributes(theDisplay, theRoot, CWCursor,
@@ -1574,6 +1579,9 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
     }
     else if (strcmp(argv[ArgCounter], "-noshape") == 0) {
       NoShape = True;
+    }
+    else if (strcmp(argv[ArgCounter], "-nocursor") == 0) {
+      NoCursor = True;
     }
     else if (strcmp(argv[ArgCounter], "-position") == 0) {
       ArgCounter++;
