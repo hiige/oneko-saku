@@ -28,6 +28,10 @@ unsigned int    WindowHeight;           /* ルートウィンドウの高さ */
 XColor  theForegroundColor;             /* 色 (フォアグラウンド) */
 XColor  theBackgroundColor;             /* 色 (バックグラウンド) */
 
+unsigned int Scale = 1; /* scaling factor for bitmaps */
+unsigned int BitmapWidth = BITMAP_WIDTH; /* scaled bitmap width */
+unsigned int BitmapHeight = BITMAP_HEIGHT; /* scaled bitmap height */
+
 int Synchronous = False;
 /* Types of animals */
 #define BITMAPTYPES 6
@@ -267,6 +271,66 @@ Animation       AnimationPattern[][2] =
 static void NullFunction();
 
 /*
+ * Return the bitmap scaled to Scale.
+ */
+
+char *
+ScaleBitmap(char *resource) {
+  char *scaled, *src;
+  unsigned int off, i, j, l, bytes, line;
+  unsigned char c, k, bits, bitoff;
+
+  if(!(scaled=calloc(l = BITMAP_WIDTH * BITMAP_HEIGHT / 8, Scale*Scale))) {
+    fprintf(stderr, "%s: Can't allocate scaled bitmap", ProgramName);
+    exit(1);
+  }
+  if(bytes=Scale/8, bits=Scale%8) {  /* general algorithm */
+    for (off=0, bitoff=0, i=0,
+         line=bytes*BITMAP_WIDTH+bits*BITMAP_WIDTH/8;
+         i < l;
+         ++i) {
+      for (j=8, c=resource[i]; j--; c>>=1)
+        if(c&1) {
+          if(bitoff + bits >= 8) {
+            scaled[off++] |= 0xff << bitoff;
+            bitoff += bits - 8;
+            memset(scaled + off, 0xff, bytes);
+            scaled[off+=bytes] |= 0xff >> 8 - bitoff;
+          }
+          else {
+            scaled[off] |= (0xff >> 8 - bits) << bitoff;
+            bitoff += bits;
+            if(bytes) {
+              scaled[off] |= 0xff << bitoff;
+              memset(scaled + off + 1, 0xff, bytes - 1);
+              scaled[off+=bytes] |= 0xff >> 8 - bitoff;
+            }
+          }
+        }
+        else if((bitoff += bits) >= 8){
+          off += bytes + 1; bitoff -= 8;
+        }
+        else off += bytes;
+      if(!((i+1) % (BITMAP_WIDTH / 8))) {
+        for (src=scaled+off-line, j=Scale; --j; off+=line)
+          memcpy(scaled + off, src, line);
+      }
+    }
+  }
+  else { /* algorithm for multiples of 8 */
+    for (off=0, i=0, line=bytes*BITMAP_WIDTH; i < l; ++i) {
+      for (j=8, c=resource[i]; j--; c>>=1, off+=bytes)
+        if(c&1) memset(scaled+off, 0xff, bytes);
+      if(!((i+1) % (BITMAP_WIDTH / 8))) {
+        for (src=scaled+off-line, j=Scale; --j; off+=line)
+          memcpy(scaled + off, src, line);
+      }
+    }
+  }
+  return scaled;
+}
+
+/*
  *      ビットマップデータ・GC 初期化
  */
 
@@ -275,6 +339,7 @@ InitBitmapAndGCs()
 {
     BitmapGCData        *BitmapGCDataTablePtr;
     XGCValues           theGCValues;
+    char *bm;
 
     theGCValues.function = GXcopy;
     theGCValues.foreground = theForegroundColor.pixel;
@@ -287,20 +352,27 @@ InitBitmapAndGCs()
          BitmapGCDataTablePtr->GCCreatePtr != NULL;
          BitmapGCDataTablePtr++) {
 
+
+        bm = (Scale == 1)
+             ?BitmapGCDataTablePtr->PixelPattern[NekoMoyou]
+             :ScaleBitmap(BitmapGCDataTablePtr->PixelPattern[NekoMoyou]);
         *(BitmapGCDataTablePtr->BitmapCreatePtr)
             = XCreatePixmapFromBitmapData(theDisplay, theRoot,
-                BitmapGCDataTablePtr->PixelPattern[NekoMoyou],
-                BITMAP_WIDTH, BITMAP_HEIGHT,
+                bm, BitmapWidth, BitmapHeight,
                 theForegroundColor.pixel,
                 theBackgroundColor.pixel,
                 DefaultDepth(theDisplay, theScreen));
+        if(Scale == 1) free(bm);
 
         theGCValues.tile = *(BitmapGCDataTablePtr->BitmapCreatePtr);
 
+        bm = (Scale == 1)
+             ?BitmapGCDataTablePtr->MaskPattern[NekoMoyou]
+             :ScaleBitmap(BitmapGCDataTablePtr->MaskPattern[NekoMoyou]);
         *(BitmapGCDataTablePtr->BitmapMasksPtr)
             = XCreateBitmapFromData(theDisplay, theRoot,
-                BitmapGCDataTablePtr->MaskPattern[NekoMoyou],
-                BITMAP_WIDTH, BITMAP_HEIGHT);
+                bm, BitmapWidth, BitmapHeight);
+        if(Scale == 1) free(bm);
 
         *(BitmapGCDataTablePtr->GCCreatePtr)
             = XCreateGC(theDisplay, theWindow,
@@ -681,7 +753,7 @@ InitScreen(char *DisplayName)
   theWindowMask = CWBackPixel | CWCursor | CWOverrideRedirect;
 
   theWindow = XCreateWindow(theDisplay, theRoot, 0, 0,
-                            BITMAP_WIDTH, BITMAP_HEIGHT,
+                            BitmapWidth, BitmapHeight,
                             0, theDepth, InputOutput, CopyFromParent,
                             theWindowMask, &theWindowAttributes);
 
@@ -800,7 +872,7 @@ DrawNeko(int x, int y, Animation DrawAnime)
         DontMapped = 0;
       }
       XFillRectangle(theDisplay, theWindow, DrawGC,
-                     0, 0, BITMAP_WIDTH, BITMAP_HEIGHT);
+                     0, 0, BitmapWidth, BitmapHeight);
     }
 
     XFlush(theDisplay);
@@ -820,7 +892,7 @@ void
 RedrawNeko()
 {
   XFillRectangle(theDisplay, theWindow, NekoLastGC,
-                 0, 0, BITMAP_WIDTH, BITMAP_HEIGHT);
+                 0, 0, BitmapWidth, BitmapHeight);
 
   XFlush(theDisplay);
 }
@@ -900,15 +972,15 @@ IsWindowOver()
     if (NekoY <= 0) {
         NekoY = 0;
         ReturnValue = True;
-    } else if (NekoY >= WindowHeight - BITMAP_HEIGHT) {
-        NekoY = WindowHeight - BITMAP_HEIGHT;
+    } else if (NekoY >= WindowHeight - BitmapHeight) {
+        NekoY = WindowHeight - BitmapHeight;
         ReturnValue = True;
     }
     if (NekoX <= 0) {
         NekoX = 0;
         ReturnValue = True;
-    } else if (NekoX >= WindowWidth - BITMAP_WIDTH) {
-        NekoX = WindowWidth - BITMAP_WIDTH;
+    } else if (NekoX >= WindowWidth - BitmapWidth) {
+        NekoX = WindowWidth - BitmapWidth;
         ReturnValue = True;
     }
 
@@ -1023,34 +1095,34 @@ CalcDxDy()
           && theTargetAttributes.y < (int)WindowHeight
           && theTargetAttributes.map_state == IsViewable) {
         if (ToFocus) {
-          if (MouseX < theTargetAttributes.x+BITMAP_WIDTH/2)
+          if (MouseX < theTargetAttributes.x+BitmapWidth/2)
             LargeX = (double)(theTargetAttributes.x + XOffset - NekoX);
           else if (MouseX > theTargetAttributes.x+theTargetAttributes.width
-                   -BITMAP_WIDTH/2)
+                   -BitmapWidth/2)
             LargeX = (double)(theTargetAttributes.x + theTargetAttributes.width
-                              + XOffset - NekoX - BITMAP_WIDTH);
+                              + XOffset - NekoX - (double)(BitmapWidth));
           else
-            LargeX = (double)(MouseX - NekoX - BITMAP_WIDTH / 2);
+            LargeX = (double)(MouseX - NekoX - (double)(BitmapWidth / 2));
 
           LargeY = (double)(theTargetAttributes.y
-                            + YOffset - NekoY - BITMAP_HEIGHT);
+                            + YOffset - NekoY - (double)(BitmapHeight));
         }
         else {
           MouseX = theTargetAttributes.x
             + theTargetAttributes.width / 2 + XOffset;
           MouseY = theTargetAttributes.y + YOffset;
-          LargeX = (double)(MouseX - NekoX - BITMAP_WIDTH / 2);
-          LargeY = (double)(MouseY - NekoY - BITMAP_HEIGHT);
+          LargeX = (double)(MouseX - NekoX - (double)(BitmapWidth / 2));
+          LargeY = (double)(MouseY - NekoY - (double)(BitmapHeight));
         }
       }
       else {
-        LargeX = (double)(MouseX - NekoX - BITMAP_WIDTH / 2);
-        LargeY = (double)(MouseY - NekoY - BITMAP_HEIGHT);
+        LargeX = (double)(MouseX - NekoX - (double)(BitmapWidth / 2));
+        LargeY = (double)(MouseY - NekoY - (double)(BitmapHeight));
       }
     }
     else {
-      LargeX = (double)(MouseX - NekoX - BITMAP_WIDTH / 2);
-      LargeY = (double)(MouseY - NekoY - BITMAP_HEIGHT);
+      LargeX = (double)(MouseX - NekoX - (double)(BitmapWidth / 2));
+      LargeY = (double)(MouseY - NekoY - (double)(BitmapHeight));
     }
 
     DoubleLength = LargeX * LargeX + LargeY * LargeY;
@@ -1100,14 +1172,14 @@ NekoThinkDraw()
         }
         if (NekoMoveDx < 0 && NekoX <= 0) {
             SetNekoState(NEKO_L_TOGI);
-        } else if (NekoMoveDx > 0 && NekoX >= WindowWidth - BITMAP_WIDTH) {
+        } else if (NekoMoveDx > 0 && NekoX >= WindowWidth - BitmapWidth) {
             SetNekoState(NEKO_R_TOGI);
         } else if ((NekoMoveDy < 0 && NekoY <= 0)
                    || (ToFocus && theTarget != None && NekoY > MouseY)){
             SetNekoState(NEKO_U_TOGI);
-        } else if ((NekoMoveDy > 0 && NekoY >= WindowHeight - BITMAP_HEIGHT)
+        } else if ((NekoMoveDy > 0 && NekoY >= WindowHeight - BitmapHeight)
                    || (ToFocus && theTarget != None
-                       &&  NekoY < MouseY - BITMAP_HEIGHT)){
+                       &&  NekoY < MouseY - BitmapHeight)){
             SetNekoState(NEKO_D_TOGI);
         } else {
             SetNekoState(NEKO_JARE);
@@ -1285,8 +1357,8 @@ ProcessNeko()
 
   /* 猫の初期化 */
 
-  NekoX = (WindowWidth - BITMAP_WIDTH / 2) / 2;
-  NekoY = (WindowHeight - BITMAP_HEIGHT / 2) / 2;
+  NekoX = (WindowWidth - BitmapWidth / 2) / 2;
+  NekoY = (WindowHeight - BitmapHeight / 2) / 2;
 
   NekoLastX = NekoX;
   NekoLastY = NekoY;
@@ -1352,6 +1424,7 @@ char    *message[] = {
 "-display <display>     : Neko appears on specified display.",
 "-fg <color>            : Foreground color",
 "-bg <color>            : Background color",
+"-scale <integer>",
 "-speed <dots>",
 "-sleeptime <tick time>",
 "-time <microseconds>",
@@ -1408,6 +1481,17 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         strcpy(theDisplayName, argv[ArgCounter]);
       } else {
         fprintf(stderr, "%s: -display option error.\n", ProgramName);
+        exit(1);
+      }
+    }
+    else if (strcmp(argv[ArgCounter], "-scale") == 0) {
+      ArgCounter++;
+      if (ArgCounter < argc) {
+        Scale = atol(argv[ArgCounter]);
+        BitmapWidth *= Scale;
+        BitmapHeight *= Scale;
+      } else {
+        fprintf(stderr, "%s: -scale option error.\n", ProgramName);
         exit(1);
       }
     }
