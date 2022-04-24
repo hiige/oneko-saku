@@ -1426,15 +1426,17 @@ NekoErrorHandler(Display *dpy, XErrorEvent *err)
 char    *message[] = {
 "",
 "Options are:",
+"-pet <pet>             : select a pet appearing in a new window",
 "-display <display>     : Neko appears on specified display.",
 "-fg <color>            : Foreground color",
 "-bg <color>            : Background color",
-"-scale <integer>",
-"-speed <dots>",
-"-sleeptime <tick time>",
-"-time <microseconds>",
+"-scale <integer>       : scale all bitmaps by a factor",
+"-speed <dots>          : change pixels traveled in one move",
+"-sleeptime <tick time> : delay waking up",
+"-time <microseconds>   : change delay between all animations",
 "-idle <dots>",
 "-name <name>           : set window name of neko.",
+"-nocursor              : do not modify the cursor.",
 "-towindow              : Neko chases selected window.",
 "-toname <name>         : Neko chases specified window.",
 "-tofocus               : Neko runs on top of focus window",
@@ -1442,6 +1444,8 @@ char    *message[] = {
 "-position <geometry>   : adjust position relative to mouse pointer.",
 "-debug                 : puts you in synchronous mode.",
 "-patchlevel            : print out your current patchlevel.",
+"-<pet name>            : change the currently selected pet.",
+"-h | -help             : print this message.",
 NULL };
 
 void
@@ -1452,7 +1456,7 @@ Usage()
 
   mptr = message;
   fprintf(stderr, "Usage: %s [<global options>]"
-                  "-pet [<pet options>] ...\n", ProgramName);
+                  " -pet [<pet name>] [<pet options>] ...\n", ProgramName);
   while (*mptr) {
     fprintf(stderr,"%s\n", *mptr);
     mptr++;
@@ -1462,6 +1466,11 @@ Usage()
     fprintf(stderr,"%s Uses %s bitmaps\n",AnimalDefaultsDataTable[loop].name,AnimalDefaultsDataTable[loop].name);
 }
 
+unsigned long djb2(char*s) {
+  unsigned long r; char c;
+  for(r=5381; c=*s++; r += (r << 5) + c);
+  return r;
+}
 
 /*
  *      オプションの理解
@@ -1478,43 +1487,41 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
   theDisplayName[0] = '\0';
 
   for (ArgCounter = 0; ArgCounter < argc; ArgCounter++) {
-
-    if (strncmp(argv[ArgCounter], "-h", 2) == 0) {
-      Usage();
-      exit(0);
-    }
-    if (strcmp(argv[ArgCounter], "-pet") == 0) do {
-      ArgCounter++;
-      if (ArgCounter >= argc) {
-        fprintf(stderr, "%s: -pet option error.\n", ProgramName);
-        exit(1);
-      }
-      av = argv[ArgCounter];
-      if (strcmp(av, "bsd") == 0)
-        av = "bsd_daemon";
-      for (loop=0;loop<BITMAPTYPES;loop++) {
-        if (strcmp(av,AnimalDefaultsDataTable[loop].name)==0)
-          {NekoMoyou = loop;found=1;}
-      }
-      if (!found) {
-        fprintf(stderr,
-                "%s: Unknown pet \"%s\".\n", ProgramName,
-                argv[ArgCounter]);
-        exit(1);
-      }
-      for (loop=ArgCounter; ++loop < argc;)
-        if(!strcmp(argv[loop], "-pet")) break;
-      if(loop != argc)
-        if(fork()) {
-          GetArguments(loop  - ArgCounter - 1,
-                       argv + ArgCounter + 1,
-                       theDisplayName);
-          return;
+    switch(djb2(argv[ArgCounter])) {
+      case 0x17c77a67b: /* -pet */
+      do {
+        ArgCounter++;
+        if (ArgCounter >= argc) {
+          fprintf(stderr, "%s: -pet option error.\n", ProgramName);
+          exit(1);
         }
-        else ArgCounter=loop;
-      else break;
-    } while(1);
-    else if (strcmp(argv[ArgCounter], "-display") == 0) {
+        av = argv[ArgCounter];
+        if (strcmp(av, "bsd") == 0)
+          av = "bsd_daemon";
+        for (loop=0;loop<BITMAPTYPES;loop++) {
+          if (strcmp(av,AnimalDefaultsDataTable[loop].name)==0)
+            {NekoMoyou = loop;found=1;}
+        }
+        if (!found) {
+          fprintf(stderr,
+                  "%s: Unknown pet \"%s\".\n", ProgramName,
+                  argv[ArgCounter]);
+          exit(1);
+        }
+        for (loop=ArgCounter; ++loop < argc;)
+          if(!strcmp(argv[loop], "-pet")) break;
+        if(loop != argc)
+          if(fork()) {
+            GetArguments(loop  - ArgCounter - 1,
+                         argv + ArgCounter + 1,
+                         theDisplayName);
+            return;
+          }
+          else ArgCounter=loop;
+        else break;
+      } while(1);
+      break;
+      case 0x1ae4d112535fc8: /* -display */
       ArgCounter++;
       if (ArgCounter < argc) {
         strcpy(theDisplayName, argv[ArgCounter]);
@@ -1522,8 +1529,18 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -display option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-scale") == 0) {
+      break;
+      case 0xb877fdf: /* -fg */
+      case 0xbf536549077c5bcd: /* -foreground */
+      ArgCounter++;
+      Foreground = argv[ArgCounter];
+      break;
+      case 0xb877f5b: /* -bg */
+      case 0xbf52a9f58e85dc92: /* -background */
+      ArgCounter++;
+      Background = argv[ArgCounter];
+      break;
+      case 0x65279301f7a: /* -scale */
       ArgCounter++;
       if (ArgCounter < argc) {
         Scale = atol(argv[ArgCounter]);
@@ -1533,8 +1550,8 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -scale option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-speed") == 0) {
+      break;
+      case 0x65279375083: /* -speed */
       ArgCounter++;
       if (ArgCounter < argc) {
         NekoSpeed = atof(argv[ArgCounter]);
@@ -1542,8 +1559,8 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -speed option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-sleeptime") == 0) {
+      break;
+      case 0x726770a83db5159a: /* -sleeptime */
       ArgCounter++;
       if (ArgCounter < argc) {
         NekoSleepTime = atoi(argv[ArgCounter]);
@@ -1551,8 +1568,8 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -sleeptime option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-time") == 0) {
+      break;
+      case 0x310b6eb7e1: /* -time */
       ArgCounter++;
       if (ArgCounter < argc) {
         IntervalTime = atol(argv[ArgCounter]);
@@ -1560,8 +1577,8 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -time option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-idle") == 0) {
+      break;
+      case 0x310b689a50: /* -idle */
       ArgCounter++;
       if (ArgCounter < argc) {
         IdleSpace = atol(argv[ArgCounter]);
@@ -1569,8 +1586,8 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -idle option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-name") == 0) {
+      break;
+      case 0x310b6b4b93: /* -name */
       ArgCounter++;
       if (ArgCounter < argc) {
         WindowName = argv[ArgCounter];
@@ -1578,12 +1595,15 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -name option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-towindow") == 0) {
+      break;
+      case 0x3777f58403a9c8d: /* -nocursor */
+      NoCursor = True;
+      break;
+      case 0x3777f93f7912f0d: /* -towindow */
       ToWindow = True;
       ToFocus = False;
-    }
-    else if (strcmp(argv[ArgCounter], "-toname") == 0) {
+      break;
+      case 0xd0a1a26950f6: /* -toname */
       ArgCounter++;
       if (ArgCounter < argc) {
         TargetName = argv[ArgCounter];
@@ -1593,48 +1613,45 @@ GetArguments(int argc, char *argv[], char *theDisplayName)
         fprintf(stderr, "%s: -toname option error.\n", ProgramName);
         exit(1);
       }
-    }
-    else if (strcmp(argv[ArgCounter], "-tofocus") == 0) {
+      break;
+      case 0x1ae4d5ef0a30f5: /* -tofocus */
       ToFocus = True;
       ToWindow = False;
-    }
-    else if ((strcmp(argv[ArgCounter], "-fg") == 0) ||
-             (strcmp(argv[ArgCounter], "-foreground") == 0)) {
-      ArgCounter++;
-      Foreground = argv[ArgCounter];
-             }
-    else if ((strcmp(argv[ArgCounter], "-bg") == 0) ||
-             (strcmp(argv[ArgCounter], "-background") == 0)) {
-      ArgCounter++;
-      Background = argv[ArgCounter];
-             }
-    else if (strcmp(argv[ArgCounter], "-rv") == 0) {
+      break;
+      case 0xb87817a: /* -rv */
       ReverseVideo = True;
-    }
-    else if (strcmp(argv[ArgCounter], "-noshape") == 0) {
-      NoShape = True;
-    }
-    else if (strcmp(argv[ArgCounter], "-nocursor") == 0) {
-      NoCursor = True;
-    }
-    else if (strcmp(argv[ArgCounter], "-position") == 0) {
+      break;
+      case 0x3777f6c3d389887: /* -position */
       ArgCounter++;
       unsigned int width, height;
       XParseGeometry(argv[ArgCounter],&XOffset,&YOffset,&width,&height);
       // FIXME: unused
-    }
-    else if (strcmp(argv[ArgCounter], "-debug") ==0) {
+      break;
+      case 0x6527821ce19: /* -debug */
       Synchronous = True;
-    }
-    else if (strcmp(argv[ArgCounter], "-patchlevel") == 0) {
+      break;
+      case 0xbf54f990118a263a: /* -patchlevel */
       fprintf(stderr,"Patchlevel :%s\n",PATCHLEVEL);
-    }
-    else {
-      fprintf(stderr,
-              "%s: Unknown option \"%s\".\n", ProgramName,
-              argv[ArgCounter]);
+      break;
+      case 0x59707a: /* -h */
+      case 0x310b68123b: /* -help */
       Usage();
-      exit(1);
+      exit(0);
+      default:
+      av = argv[ArgCounter] + 1;
+      if (strcmp(av, "bsd") == 0)
+        av = "bsd_daemon";
+      for (loop=0;loop<BITMAPTYPES;loop++) {
+        if (strcmp(av,AnimalDefaultsDataTable[loop].name)==0)
+          {NekoMoyou = loop;found=1;}
+      }
+      if (!found) {
+        fprintf(stderr,
+                "%s: Unknown option \"%s\".\n", ProgramName,
+                argv[ArgCounter]);
+        Usage();
+        exit(1);
+      }
     }
   }
 
