@@ -8,22 +8,19 @@
 
 =head1 Name
 
-oneko — a cute cat chasing around your mouse cursor
+oneko — cute cats chasing around your mouse cursor
 
 =head1 Synopsis
 
-B<oneko> [B<-help>]
-[B<-tora>] [B<-dog>] [B<-bsd_daemon>] [B<-bsd>] [B<-sakura>] [B<-tomoyo>]
-[B<-time> I<n>] [B<-speed> I<n>] [B<-idle> I<n>]
-[B<-name> I<name>] [B<-towindow>] [B<-toname> I<name>] [B<-tofocus>]
-[B<-position> I<geometry>]
-[B<-rv>] [B<-noshape>] [B<-fg>] [B<-bg>]
+B<oneko> [B<global options>] [B<-pet> I<pet_name> [B<pet options>] ... ] ...
 
 =head1 Description
 
-I<oneko> changes your mouse cursor into a mouse and creates a little cute cat
-which starts chasing your mouse cursor.  If the cat catches up the cursor,
+I<oneko> changes your mouse cursor into a mouse and creates little cute cats
+which starts chasing your mouse cursor or another focus.
+If the cat catches up with the focus,
 it starts sleeping.
+Each <-pet> flag creates a cat.
 
 =head2 Options
 
@@ -33,32 +30,19 @@ it starts sleeping.
 
 Prints help message on usage.
 
-=item B<-tora>
+=item B<-neko>,  B<-tora>,  B<-dog>, B<-bsd>, B<-bsd_daemon>, B<-sakura>, B<-tomoyo>
 
-Make cat into "tora-neko".  "Tora-neko" means cat with tiger-like stripe.
-I don't know how to say it in English.
-
-=item B<-dog>
-
-Runs a dog instead of a cat.
-
-=item B<-bsd>, B<-bsd_daemon>
-
-Runs a 4.3BSD daemon instead of a cat.
-
-=item B<-sakura>
-
-Runs Sakura Kinomoto instead of a cat.
-
-=item B<-tomoyo>
-
-Runs Tomoyo Daidouji instead of a cat.
+Legacy options compatible with the original oneko.
+A pet is selected without creating a new window.
 
 =item B<-time> I<interval>
 
 Sets interval timer which determine intervals for cat animation.
 Default value is 125000 and unit is micro-second.  Smaller value makes cat
 run faster.
+
+=item B<-sleeptime> I<time>",
+Set a delay between the first movement of the focus and the wakeup event.
 
 =item B<-speed> I<distance>
 
@@ -157,6 +141,39 @@ Background color.
 
 =back
 
+=head2 Pets
+
+The following arguments may be passed to the B<-pet> option.
+
+=over
+
+=item I<neko>
+
+Select the default cat.
+
+=item I<tora>
+
+Selects a "tora-neko".  "Tora-neko" means cat with tiger-like stripe.
+I don't know how to say it in English.
+
+=item I<dog>
+
+Selects a dog instead of a cat.
+
+=item I<bsd>, I<bsd_daemon>
+
+Selects a 4.3BSD daemon instead of a cat.
+
+=item I<sakura>
+
+Selects Sakura Kinomoto instead of a cat.
+
+=item I<tomoyo>
+
+Selects Tomoyo Daidouji instead of a cat.
+
+=back
+
 =head1 Notes
 
 While this program uses C<XGetDefault>, be sure to use "neko.resource" form. If
@@ -169,6 +186,8 @@ Sakura Kinomoto and Tomoyo Daidouji are characters in a comic strip
 "CARDCAPTOR SAKURA" (CLAMP, Kodansha), with the sanction indicated in
 L<CLAMP SCHOOL WEB CAMPUS|http://www.clamp.f-2.co.jp/>.
 
+This fork is backwards compatible with the original oneko and oneko-sakura.
+
 =head1 Authors
 
 Original I<xneko> was written by Masayuki Koba and modified to I<oneko>
@@ -177,4 +196,5 @@ Toshihiro Kanda and L<Kiichiroh Mukose|mailto:mukose@hbar.mp.es.osaka-u.ac.jp>.
 
 =head1 Maintainer
 
-L<Ivan Trubach|mailto:mr.trubach@icloud.com>
+oneko-sakura: -L<Ivan Trubach|mailto:mr.trubach@icloud.com>
+oneko-saku is maintained at L<https://github.com/hiige/oneko-saku>

@@ -12,7 +12,7 @@ using pod2man, run the command below.
 ```sh
 lang=en # assuming you want to generate english man pages
 pod2man -u --lquote='``' --rquote="''" \
-  -s 6 -n oneko -r 1.2.sakura.5 -c 'oneko manual' \
+  -s 6 -n oneko -r 1.2.saku.0 -c 'oneko manual' \
    <$lang/README.pod >oneko.man
 ```
 
