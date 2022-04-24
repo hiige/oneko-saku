@@ -14,5 +14,11 @@ oneko :
 install : all
 	install -o 755 oneko $(BINDIR)
 
+scripts : djb2/djb2
+
+djb2/djb2 :
+	git submodule init && git submodule update && cd djb2 && make
+
 clean :
-	rm oneko
+	rm oneko 2>/dev/null
+	cd djb2 2>/dev/null && make clean

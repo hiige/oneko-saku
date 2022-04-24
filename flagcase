@@ -1,0 +1,2 @@
+#!/bin/sh
+djb2/djb2 "$@" | awk '{ print "case 0x" $1 ": /*", $2, "*/" }'

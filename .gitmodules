@@ -1,0 +1,3 @@
+[submodule "djb2"]
+	path = djb2
+	url = https://github.com/hiige/djb2.git
