@@ -782,11 +782,14 @@ RestoreCursor()
   XSetWindowAttributes  theWindowAttributes;
   BitmapGCData *BitmapGCDataTablePtr;
 
-  if(NoCursor) return;
-
-  theWindowAttributes.cursor = None;
-  XChangeWindowAttributes(theDisplay, theRoot, CWCursor,
-                          &theWindowAttributes);
+  if(!NoCursor) {
+    theWindowAttributes.cursor = None;
+    XChangeWindowAttributes(theDisplay, theRoot, CWCursor,
+                            &theWindowAttributes);
+    XFreeCursor(theDisplay,theCursor);
+  }
+  else XChangeWindowAttributes(theDisplay, theRoot, 0,
+                               &theWindowAttributes);
   for (BitmapGCDataTablePtr = BitmapGCDataTable;
        BitmapGCDataTablePtr->GCCreatePtr != NULL;
        BitmapGCDataTablePtr++) {
@@ -794,7 +797,6 @@ RestoreCursor()
     XFreePixmap(theDisplay,*(BitmapGCDataTablePtr->BitmapMasksPtr));
     XFreeGC(theDisplay,*(BitmapGCDataTablePtr->GCCreatePtr));
        }
-  XFreeCursor(theDisplay,theCursor);
   XCloseDisplay(theDisplay);
   exit(0);
 }
